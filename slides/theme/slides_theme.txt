@@ -1,0 +1,27 @@
+
+----------------------------------------
+FONTS
+-----
+
+1. Consolas (for titles etc)
+2. Lato (for main text)
+
+
+----------------------------------------
+COLOUR SCHEME
+-----
+(Works for both light & dark themes)
+
+black 		2B2E34
+white 		FFFFFF
+light orange 	FFA25E
+orange		FF5500
+lightGray	D6D6D7
+gray		76797D
+darkGray	565A5F
+blue		585AF5
+darkRed		FF3333
+lightRed	FF8B8B
+
+mint...		99FF99 (or less saturated... A5DE9D)
+(lilac...	A0A1E5)
