@@ -1,0 +1,12 @@
+Time allocations:
+-	Intro – 00:00
+-	Overview – 00:15
+-	Lights & Shadows – 01:00
+-	Shadow Mapping – 02:30
+-	OpenGL Rendering pipeline – 03:30
+-	Method – 07:00
+o	Step 1) Generate Depth map
+o	Step 2) Render Scene – 10:00
+-	Artefacts – 14:00
+-	[Demo] – 19:00
+-	‘Summary’ – 24:00
