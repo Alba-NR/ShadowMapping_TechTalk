@@ -26,12 +26,12 @@ public class Material {
     private List<Texture> texturesList;
 
     public Material(){
-        diffColour = new Vector3f(0.973f, 0.639f, 0.475f);  // coral orange colour
-        specColour = new Vector3f(	0.984f, 0.851f, 0.663f);
+        diffColour = new Vector3f(0.3f, 0.3f, 0.3f);
+        specColour = new Vector3f(0.8f, 0.8f, 0.8f);
         K_a = 0.5f;
         K_diff = 0.4f;
         K_spec = 0.8f;
-        shininess = 64f;
+        shininess = 128f;
         texturesList = null;
     }
 
@@ -93,9 +93,6 @@ public class Material {
             shader.uploadInt("materialUsesTextures", 1);
             uploadTexturesToShader(shader);
         }
-
-        shader.uploadInt("isReflectiveMaterial", 0);    // not a reflective material
-        shader.uploadInt("isRefractiveMaterial", 0);    // not a refractive material
     }
 
     /**

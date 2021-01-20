@@ -1,7 +1,5 @@
 package graphics.renderEngine;
 
-import graphics.renderEngine.postProcessing.EffectsManager;
-import graphics.renderEngine.postProcessing.PostProcessingEffect;
 import graphics.shaders.ShaderProgram;
 import graphics.shapes.ScreenQuad;
 
@@ -40,17 +38,6 @@ public class ScreenQuadRenderer {
      */
     public void render() {
         shaderProgram.use();
-
-        PostProcessingEffect effect = RenderContext.getPostProcessingEffect();
-        // upload effect data to shader
-        int effectID = EffectsManager.getEffectIntID(effect);
-        int intValueToUpload;
-        if(effectID < 3) intValueToUpload = effectID;
-        else{
-            intValueToUpload = 3;
-            shaderProgram.uploadFloatArray("kernel3x3", effect.getKernel());
-        }
-        shaderProgram.uploadInt("effectToUse", intValueToUpload);
 
         quad.bindTexture();
         quad.getMesh().render();

@@ -4,20 +4,14 @@ import graphics.camera.Camera;
 import graphics.camera.CameraMovement;
 import graphics.core.WindowManager;
 import graphics.lights.DirLight;
-import graphics.lights.FlashLight;
-import graphics.lights.PointLight;
 import graphics.materials.Material;
-import graphics.materials.ReflectiveMaterial;
-import graphics.materials.RefractiveMaterial;
 import graphics.renderEngine.*;
-import graphics.renderEngine.postProcessing.EffectsManager;
 import graphics.scene.DrawableEntity;
 import graphics.scene.Entity;
 import graphics.scene.Scene;
 import graphics.shapes.*;
 import graphics.shaders.Shader;
 import graphics.shaders.ShaderProgram;
-import graphics.textures.CubeMapTexture;
 import graphics.textures.Texture;
 import graphics.textures.TextureType;
 import org.joml.Matrix4f;
@@ -25,7 +19,6 @@ import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 import static org.lwjgl.glfw.GLFW.*;
@@ -39,9 +32,7 @@ import static org.lwjgl.opengl.GL30.*;
  */
 class OpenGLApp {
 
-    private ShaderProgram phongShaderProgram;    // phong shader program using diff & spec textures or colours
-    private ShaderProgram lightShaderProgram;           // shader prog to use for light cubes
-    private ShaderProgram skyboxShaderProgram;          // shader prog to use for skybox
+    private ShaderProgram phongShaderProgram;           // phong shader program using diff & spec textures or colours
     private ShaderProgram quadShaderProgram;            // shader prog to use for quad
     private ShaderProgram toDepthTexShaderProgram;      // shader prog to use for rendering to depth texture
     private Scene scene;                                // scene to render
@@ -87,18 +78,8 @@ class OpenGLApp {
     private void setUpShaders() {
         // create (blinn-)phong shaders
         Shader phong_vs = new Shader(GL_VERTEX_SHADER, "./resources/shaders/phong_shadowMaps_vs.glsl");
-        Shader phong_fs = new Shader(GL_FRAGMENT_SHADER, "./resources/shaders/blinnPhong_wReflectionRefraction_shadowMaps_fs.glsl");
+        Shader phong_fs = new Shader(GL_FRAGMENT_SHADER, "./resources/shaders/blinnPhong_wShadowMaps_fs.glsl");
         phongShaderProgram = new ShaderProgram(phong_vs, phong_fs);
-
-        // create light cube shaders
-        Shader light_vs = new Shader(GL_VERTEX_SHADER, "./resources/shaders/lightSource_vs.glsl");
-        Shader light_fs = new Shader(GL_FRAGMENT_SHADER, "./resources/shaders/lightSource_fs.glsl");
-        lightShaderProgram = new ShaderProgram(light_vs, light_fs);
-
-        // create skybox shaders
-        Shader skybox_vs = new Shader(GL_VERTEX_SHADER, "./resources/shaders/skybox_vs.glsl");
-        Shader skybox_fs = new Shader(GL_FRAGMENT_SHADER, "./resources/shaders/skybox_fs.glsl");
-        skyboxShaderProgram = new ShaderProgram(skybox_vs, skybox_fs);
 
         // create quad shaders
         Shader quad_vs = new Shader(GL_VERTEX_SHADER, "./resources/shaders/quad_vs.glsl");
@@ -115,83 +96,11 @@ class OpenGLApp {
      * Set-up the scene to render here.
      */
     private void setUpScene() {
-        // --- SET UP SKYBOX ---
-        String filepath = "./resources/textures/yokohama_skybox/";
-        String[] facesFileNames = new String[]{
-                filepath +  "right.jpg",
-                filepath +  "left.jpg",
-                filepath +  "top.jpg",
-                filepath +  "bottom.jpg",
-                filepath +  "front.jpg",
-                filepath +  "back.jpg"
-        };
-        CubeMapTexture cubeMapTexture = new CubeMapTexture(facesFileNames);
-        CubeMapCube skybox = new CubeMapCube(cubeMapTexture);
 
         // --- SET UP LIGHTS ---
 
         // directional light
         DirLight dirLight = new DirLight(new Vector3f(1.0f, 1.0f, 1.0f), 2.0f, new Vector3f(-0.2f, -1.0f, -0.3f));
-
-        // flashlight spotlight
-        FlashLight flashLight = new FlashLight(
-                camera.getCameraPos(),
-                new Vector3f(0.5f, 0.5f, 1.0f),
-                2.5f,
-                camera.getCameraFront(),
-                1.0f,
-                0.045f,
-                0.00075f,
-                (float) Math.cos(Math.toRadians(5)),
-                (float) Math.cos(Math.toRadians(7))
-        );
-
-        // point lights
-        List<PointLight> pointLightsList = new ArrayList<>();
-        Vector3f[] pointLightPositions = {
-                new Vector3f( -1.0f,  2.0f,  2.0f),
-                new Vector3f( 2.0f, 2.0f, -2.0f),
-                new Vector3f(-5.0f,  2.0f, -5.0f)
-        };
-        Vector3f[] pointLightColours = {
-                new Vector3f(0.0f, 1.0f, 1.0f),     //blue
-                new Vector3f(1.0f,  0.0f, 0.0f),    // red
-                new Vector3f(1.0f, 1.0f, 0.0f)      // yellow
-        };
-
-        // point light 1
-        PointLight pointLight1 = new PointLight(
-                pointLightPositions[0],
-                pointLightColours[0],
-                2.5f,
-                1.0f,
-                0.09f,
-                0.032f
-        );
-        pointLightsList.add(pointLight1);
-
-        // point light 2
-        PointLight pointLight2 = new PointLight(
-                pointLightPositions[1],
-                pointLightColours[1],
-                2.5f,
-                1.0f,
-                0.09f,
-                0.032f
-        );
-        pointLightsList.add(pointLight2);
-
-        // point light 3
-        PointLight pointLight3 = new PointLight(
-                pointLightPositions[2],
-                pointLightColours[2],
-                2.5f,
-                1.0f,
-                0.14f,
-                0.07f
-        );
-        pointLightsList.add(pointLight3);
-
         Vector3f ambientIntensity = new Vector3f(0.7f,0.7f,1.0f);
 
         // --- SET UP ENTITIES ---
@@ -201,7 +110,7 @@ class OpenGLApp {
                 new Texture("./resources/textures/container2_specular.png", false, TextureType.SPECULAR),
                 new Texture("./resources/textures/container2_reflection2.png", false, TextureType.REFLECTION)
         );
-        Material cubeMaterial = new ReflectiveMaterial(woodenCube_texList);
+        Material cubeMaterial = new Material(woodenCube_texList);
         cubeMaterial.setK_spec(0.5f);
         Shape cube = new Cube(cubeMaterial);
 
@@ -247,18 +156,7 @@ class OpenGLApp {
         Entity floor = new DrawableEntity(null, floor_local_transform, new Vector3f(50), square);
 
         // DRAGON
-        Shape dragonShape = new ShapeFromOBJ("./resources/models/dragon.obj",
-                new RefractiveMaterial(
-                        0.01f,
-                        0.2f,
-                        0.025f,
-                        64f,
-                        new Vector3f(1.0f, 51/255f, 51/255f),
-                        new Vector3f(1.0f),
-                        1f
-                        ),
-                true); // red glass dragon
-
+        Shape dragonShape = new ShapeFromOBJ("./resources/models/box.obj", new Material(), true); // red glass dragon
 
         // calc local transform matrix for dragon
         Matrix4f dragon_local_transform = new Matrix4f();
@@ -268,27 +166,13 @@ class OpenGLApp {
         // create dragon entity
         Entity dragon = new DrawableEntity(null, dragon_local_transform, new Vector3f(0.25f), dragonShape);
 
-        // GRASS
-        Texture grassTex = new Texture("./resources/textures/grass.png", true, TextureType.DIFFUSE);
-        grassTex.setTexWrapToClampToEdge();
-        Material grassMaterial = new Material(0.5f, 0.99f, 0.01f, 64f, Collections.singletonList(grassTex));
-        Shape grassShape = new Square(grassMaterial);
-
-        List<Entity> grassEntities = new ArrayList<>();
-        for(int i = 0; i < 3; i++){
-            Matrix4f grass_local_transform = new Matrix4f();
-            grass_local_transform.translate(5.0f, -0.5f, -5.0f)
-                                    .rotate((float) Math.toRadians(45) * i, 0, 1, 0);
-            grassEntities.add(new DrawableEntity(null, grass_local_transform, new Vector3f(1), grassShape));
-        }
 
         // --- COMPONENTS LIST: add entities to components list
-        List<Entity> components = new ArrayList<>();
-        components.addAll(Arrays.asList(cube1_entity, dragon, floor));
-        components.addAll(grassEntities);
+        List<Entity> components = new ArrayList<>(Arrays.asList(cube1_entity, dragon, floor));
+
 
         // --- CREATE SCENE ---
-        scene = new Scene(components, dirLight, flashLight, pointLightsList, ambientIntensity, skybox);
+        scene = new Scene(components, dirLight, ambientIntensity);
 
     }
 
@@ -299,8 +183,6 @@ class OpenGLApp {
 
         // --- create renderers ---
         Renderer entityRenderer;    // created after preparing toDepthTextureRenderer (bc uses depth tex handle)
-        Renderer lightSourceRenderer = new PointLightRenderer(lightShaderProgram);
-        Renderer skyboxRenderer = new SkyboxRenderer(skyboxShaderProgram);
         ScreenQuadRenderer screenQuadRenderer = new ScreenQuadRenderer(quadShaderProgram);
         ToColourTextureRenderer toColourTextureRenderer = new ToColourTextureRenderer();
         ToDepthTextureRenderer toDepthTextureRenderer = new ToDepthTextureRenderer(toDepthTexShaderProgram, 1024, 1024);
@@ -329,8 +211,6 @@ class OpenGLApp {
         entityRenderer = new EntityPhongWShadowMapsRenderer(phongShaderProgram, toDepthTextureRenderer.getDepthTex());
         entityRenderer.prepare(scene);
 
-        lightSourceRenderer.prepare(scene);
-
         toColourTextureRenderer.prepare();
         screenQuad = new ScreenQuad(toColourTextureRenderer.getColourTex());
         screenQuadRenderer.prepare(screenQuad);
@@ -351,7 +231,6 @@ class OpenGLApp {
 
             // --- process keyboard arrows input --
             processAWSDInput(deltaTime);
-            currentKeyFState = processFlashLightToggle(scene.getFlashLight(), currentKeyFState);
 
             // --- clear screen ---
             WindowManager.clearScreen();
@@ -372,8 +251,6 @@ class OpenGLApp {
             RenderContext.setContext(view, projection, camera.getCameraPos(), camera.getCameraFront());
 
             entityRenderer.render(scene);
-            lightSourceRenderer.render(scene);
-            skyboxRenderer.render(scene);
 
 
             // bind default framebuffer & render quad
@@ -417,9 +294,11 @@ class OpenGLApp {
             }
             // -> AWSD used to move camera (in processArrowsInput() method)
             // number keys used to set post-processing effects
-            for(int i = 0; i < EffectsManager.getNumOfEffects(); i++){
+            /*for(int i = 0; i < EffectsManager.getNumOfEffects(); i++){
                 if (key == GLFW_KEY_0 + i) RenderContext.setPostProcessingEffect(EffectsManager.getEffectByIntID(i));
             }
+
+             */
         });
 
         // mouse-related callbacks
@@ -456,13 +335,12 @@ class OpenGLApp {
     }
 
     /**
-     * Process keyboard input (press of key F) to toggle the flashlight
-     * @param flashLight the flashlight to toggle ON/OFF
+     * Process keyboard input (press of key F) to toggle the flashlight todo
      * @return the new GLFW state of the F key
      */
-    private int processFlashLightToggle(FlashLight flashLight, int currentFKeyState){
+    private int processFlashLightToggle(int currentFKeyState){
         int newKeyState = WindowManager.getKeyState(GLFW_KEY_F);
-        if (currentFKeyState == GLFW_PRESS && newKeyState == GLFW_RELEASE) flashLight.toggle();
+        //if (currentFKeyState == GLFW_PRESS && newKeyState == GLFW_RELEASE) ;
         return  newKeyState;
     }
 
@@ -477,8 +355,6 @@ class OpenGLApp {
         scene.deallocateMeshResources();
         screenQuad.getMesh().deallocateResources();
         phongShaderProgram.delete();
-        lightShaderProgram.delete();
-        skyboxShaderProgram.delete();
         quadShaderProgram.delete();
         toDepthTexShaderProgram.delete();
 
