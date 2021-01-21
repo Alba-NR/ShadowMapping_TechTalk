@@ -1,5 +1,6 @@
 package graphics.renderEngine;
 
+import graphics.renderEngine.renderOptionsManager.RenderOptions;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
@@ -17,6 +18,8 @@ public class RenderContext {
 
     private static Matrix4f dirLightSpaceMatrix;
 
+    private static RenderOptions renderOption;
+
     public static void setContext(Matrix4f view_m, Matrix4f projection_m, Vector3f camera_pos, Vector3f camera_front){
         viewMatrix = view_m;
         projMatrix = projection_m;
@@ -28,6 +31,9 @@ public class RenderContext {
         RenderContext.dirLightSpaceMatrix = dirLightSpaceMatrix;
     }
 
+    public static void setRenderOption(RenderOptions renderOption) {
+        RenderContext.renderOption = renderOption;
+    }
 
     public static Matrix4f getViewMatrix(){
         return viewMatrix;
@@ -47,5 +53,9 @@ public class RenderContext {
 
     public static Matrix4f getDirLightSpaceMatrix() {
         return dirLightSpaceMatrix;
+    }
+
+    public static RenderOptions getRenderOption() {
+        return renderOption;
     }
 }

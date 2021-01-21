@@ -6,6 +6,8 @@ import graphics.core.WindowManager;
 import graphics.lights.DirLight;
 import graphics.materials.Material;
 import graphics.renderEngine.*;
+import graphics.renderEngine.RenderContext;
+import graphics.renderEngine.renderOptionsManager.RenderOptionsManager;
 import graphics.scene.DrawableEntity;
 import graphics.scene.Entity;
 import graphics.scene.Scene;
@@ -293,12 +295,10 @@ class OpenGLApp {
                 else if (action == GLFW_RELEASE) glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
             }
             // -> AWSD used to move camera (in processArrowsInput() method)
-            // number keys used to set post-processing effects
-            /*for(int i = 0; i < EffectsManager.getNumOfEffects(); i++){
-                if (key == GLFW_KEY_0 + i) RenderContext.setPostProcessingEffect(EffectsManager.getEffectByIntID(i));
+            // number keys used to choose what to render (4 options)
+            for(int i = 1; i <= RenderOptionsManager.getNumOfOptions(); i++){
+                if (key == GLFW_KEY_0 + i) RenderContext.setRenderOption(RenderOptionsManager.getEffectByIntID(i));
             }
-
-             */
         });
 
         // mouse-related callbacks
