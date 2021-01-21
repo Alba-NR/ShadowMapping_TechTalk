@@ -16,9 +16,9 @@ public class RenderContext {
     private static Matrix4f viewMatrix, projMatrix;
     private static Vector3f cameraPos, cameraFront;
 
-    private static Matrix4f dirLightSpaceMatrix;
+    private static Matrix4f dirLightViewMatrix, dirLightProjMatrix, dirLightSpaceMatrix;
 
-    private static RenderOptions renderOption;
+    private static RenderOptions renderOption = RenderOptions.NORMAL;
 
     public static void setContext(Matrix4f view_m, Matrix4f projection_m, Vector3f camera_pos, Vector3f camera_front){
         viewMatrix = view_m;
@@ -27,8 +27,12 @@ public class RenderContext {
         cameraFront = camera_front;
     }
 
-    public static void setDirLightSpaceMatrix(Matrix4f dirLightSpaceMatrix) {
-        RenderContext.dirLightSpaceMatrix = dirLightSpaceMatrix;
+    public static void setDirLightViewMatrix(Matrix4f dirLightViewMatrix) {
+        RenderContext.dirLightViewMatrix = dirLightViewMatrix;
+    }
+
+    public static void setDirLightProjMatrix(Matrix4f dirLightProjMatrix) {
+        RenderContext.dirLightProjMatrix = dirLightProjMatrix;
     }
 
     public static void setRenderOption(RenderOptions renderOption) {
@@ -52,7 +56,19 @@ public class RenderContext {
     }
 
     public static Matrix4f getDirLightSpaceMatrix() {
+        if(dirLightSpaceMatrix == null){
+            dirLightSpaceMatrix = new Matrix4f(dirLightProjMatrix);
+            dirLightSpaceMatrix.mul(dirLightViewMatrix);
+        }
         return dirLightSpaceMatrix;
+    }
+
+    public static Matrix4f getDirLightViewMatrix() {
+        return dirLightViewMatrix;
+    }
+
+    public static Matrix4f getDirLightProjMatrix() {
+        return dirLightProjMatrix;
     }
 
     public static RenderOptions getRenderOption() {

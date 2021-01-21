@@ -35,10 +35,13 @@ import static org.lwjgl.opengl.GL30.*;
 class OpenGLApp {
 
     private ShaderProgram phongShaderProgram;           // phong shader program using diff & spec textures or colours
+    private ShaderProgram phongWShadowsShaderProgram;   // phong shader prog w/shadows
     private ShaderProgram quadShaderProgram;            // shader prog to use for quad
     private ShaderProgram toDepthTexShaderProgram;      // shader prog to use for rendering to depth texture
+    private ShaderProgram depthGreyShaderProgram;       // shader prog to render depth map in greyscale
     private Scene scene;                                // scene to render
     private ScreenQuad screenQuad;                      // quad filling entire screen (scene displayed as it's colour texture...)
+    private ScreenQuad screenQuadForSM;                 // quad for greyscale depth map....
 
     final private int SCR_WIDTH = WindowManager.getScrWidth();  // screen size settings
     final private int SCR_HEIGHT = WindowManager.getScrHeight();
@@ -83,6 +86,11 @@ class OpenGLApp {
         Shader phong_fs = new Shader(GL_FRAGMENT_SHADER, "./resources/shaders/blinnPhong_wShadowMaps_fs.glsl");
         phongShaderProgram = new ShaderProgram(phong_vs, phong_fs);
 
+        // create (blinn-)phong shaders w/shadow mapping
+        Shader phongWS_vs = new Shader(GL_VERTEX_SHADER, "./resources/shaders/phong_vs.glsl");
+        Shader phongWS_fs = new Shader(GL_FRAGMENT_SHADER, "./resources/shaders/blinnPhong_fs.glsl");
+        phongWShadowsShaderProgram = new ShaderProgram(phongWS_vs, phongWS_fs);
+
         // create quad shaders
         Shader quad_vs = new Shader(GL_VERTEX_SHADER, "./resources/shaders/quad_vs.glsl");
         Shader quad_fs = new Shader(GL_FRAGMENT_SHADER, "./resources/shaders/quad_fs.glsl");
@@ -92,6 +100,10 @@ class OpenGLApp {
         Shader toDepthMap_vs = new Shader(GL_VERTEX_SHADER, "./resources/shaders/toDepthMap_vs.glsl");
         Shader toDepthMap_fs = new Shader(GL_FRAGMENT_SHADER, "./resources/shaders/toDepthMap_fs.glsl");
         toDepthTexShaderProgram = new ShaderProgram(toDepthMap_vs, toDepthMap_fs);
+
+        // create depth greyscale shaders
+        Shader depthMapDebug_fs = new Shader(GL_FRAGMENT_SHADER, "./resources/shaders/depthDebug_fs.glsl");
+        depthGreyShaderProgram = new ShaderProgram(quad_vs, depthMapDebug_fs);
     }
 
     /**
@@ -184,10 +196,12 @@ class OpenGLApp {
     void renderLoop(){
 
         // --- create renderers ---
-        Renderer entityRenderer;    // created after preparing toDepthTextureRenderer (bc uses depth tex handle)
+        EntityPhongRenderer entityNormalRenderer = new EntityPhongRenderer(phongShaderProgram);
+        EntityPhongWShadowMapsRenderer entityWShadowsRenderer;    // created after preparing toDepthTextureRenderer (bc uses depth tex handle)
         ScreenQuadRenderer screenQuadRenderer = new ScreenQuadRenderer(quadShaderProgram);
         ToColourTextureRenderer toColourTextureRenderer = new ToColourTextureRenderer();
         ToDepthTextureRenderer toDepthTextureRenderer = new ToDepthTextureRenderer(toDepthTexShaderProgram, 1024, 1024);
+        DepthDebugScreenQuadRenderer depthGreyScreenQuadRenderer = new DepthDebugScreenQuadRenderer(depthGreyShaderProgram);
 
         // --------- SET UP SCENE ---------
         setUpScene();
@@ -201,17 +215,21 @@ class OpenGLApp {
                 new Vector3f(0),
                 new Vector3f(0.0f, 10.f, 0.0f)
         );
-        Matrix4f lightSpaceMatrix = new Matrix4f(lightProjection);
-        lightSpaceMatrix.mul(lightView);
 
-        RenderContext.setDirLightSpaceMatrix(lightSpaceMatrix);
+        RenderContext.setDirLightViewMatrix(lightView);
+        RenderContext.setDirLightProjMatrix(lightProjection);
 
 
         // --- prepare renderers ---
         toDepthTextureRenderer.prepare(scene);
 
-        entityRenderer = new EntityPhongWShadowMapsRenderer(phongShaderProgram, toDepthTextureRenderer.getDepthTex());
-        entityRenderer.prepare(scene);
+        screenQuadForSM = new ScreenQuad(toDepthTextureRenderer.getDepthTex());
+        depthGreyScreenQuadRenderer.prepare(screenQuadForSM);
+
+        entityWShadowsRenderer = new EntityPhongWShadowMapsRenderer(phongWShadowsShaderProgram, toDepthTextureRenderer.getDepthTex());
+        entityWShadowsRenderer.prepare(scene);
+
+        entityNormalRenderer.prepare(scene);
 
         toColourTextureRenderer.prepare();
         screenQuad = new ScreenQuad(toColourTextureRenderer.getColourTex());
@@ -237,34 +255,20 @@ class OpenGLApp {
             // --- clear screen ---
             WindowManager.clearScreen();
 
-            //--- render to depth map ---
-            toDepthTextureRenderer.render(scene);
-
-            // --- bind fbo to which to render ---
-            toColourTextureRenderer.bindFBOtoUse();
-            WindowManager.clearColourDepthBuffers();
-
-            // --- render commands ---
-
-            Matrix4f view = camera.calcLookAt(); // calc view matrix
-            Matrix4f projection = new Matrix4f(); // create projection matrix
-            projection.setPerspective((float) Math.toRadians(camera.getFOV()), (float) SCR_WIDTH / SCR_HEIGHT, 0.1f, 100.0f);
-
-            RenderContext.setContext(view, projection, camera.getCameraPos(), camera.getCameraFront());
-
-            entityRenderer.render(scene);
-
-
-            // bind default framebuffer & render quad
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
-            glDisable(GL_DEPTH_TEST);       // so that screen-space quad isn't discarded bc of depth test
-            // clear relevant buffers
-            WindowManager.clearColour(1.0f, 1.0f, 1.0f); // optional, to correctly see quad in wireframe mode
-            WindowManager.clearColourBuffer();
-
-            screenQuadRenderer.render();    // render screen quad
-            glEnable(GL_DEPTH_TEST);
-
+            switch (RenderContext.getRenderOption()){
+                case NORMAL:
+                    renderNormal(toColourTextureRenderer, entityNormalRenderer, screenQuadRenderer);
+                    break;
+                case FROM_LIGHT_POV:
+                    renderFromLight(toColourTextureRenderer, entityNormalRenderer, screenQuadRenderer);
+                    break;
+                case DEPTH_MAP:
+                    renderDepthMap(toDepthTextureRenderer, depthGreyScreenQuadRenderer);
+                    break;
+                case WITH_SHADOWS:
+                    renderWithShadows(toDepthTextureRenderer, toColourTextureRenderer, entityWShadowsRenderer,screenQuadRenderer);
+                    break;
+            }
 
             // --- check events & swap buffers ---
             WindowManager.updateWindow();
@@ -274,6 +278,100 @@ class OpenGLApp {
         glBindBuffer(GL_ARRAY_BUFFER, 0);    // unbind any VBO
         glBindVertexArray(0);                       // unbind any VAO
     }
+
+    // --------------------------------------------------------------------------------------------------------------------------
+
+    private void renderNormal(ToColourTextureRenderer toColourTextureRenderer, EntityPhongRenderer entityRenderer, ScreenQuadRenderer screenQuadRenderer){
+        // --- bind fbo to which to render ---
+        toColourTextureRenderer.bindFBOtoUse();
+        WindowManager.clearColourDepthBuffers();
+
+        // --- render commands ---
+
+        Matrix4f view = camera.calcLookAt(); // calc view matrix
+        Matrix4f projection = new Matrix4f(); // create projection matrix
+        projection.setPerspective((float) Math.toRadians(camera.getFOV()), (float) SCR_WIDTH / SCR_HEIGHT, 0.1f, 100.0f);
+
+        RenderContext.setContext(view, projection, camera.getCameraPos(), camera.getCameraFront());
+
+        entityRenderer.render(scene);
+
+        // bind default framebuffer & render quad
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glDisable(GL_DEPTH_TEST);       // so that screen-space quad isn't discarded bc of depth test
+        // clear relevant buffers
+        WindowManager.clearColour(1.0f, 1.0f, 1.0f); // optional, to correctly see quad in wireframe mode
+        WindowManager.clearColourBuffer();
+
+        screenQuadRenderer.render();    // render screen quad
+        glEnable(GL_DEPTH_TEST);
+    }
+
+    private void renderFromLight(ToColourTextureRenderer toColourTextureRenderer, EntityPhongRenderer entityRenderer, ScreenQuadRenderer screenQuadRenderer){
+        // --- bind fbo to which to render ---
+        toColourTextureRenderer.bindFBOtoUse();
+        WindowManager.clearColourDepthBuffers();
+
+        // --- render commands ---
+
+        Matrix4f view = RenderContext.getDirLightViewMatrix();          // get view matrix
+        Matrix4f projection = RenderContext.getDirLightProjMatrix();    // get proj matrix
+
+        RenderContext.setContext(view, projection, camera.getCameraPos(), camera.getCameraFront());
+
+        entityRenderer.render(scene);
+
+        // bind default framebuffer & render quad
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glDisable(GL_DEPTH_TEST);       // so that screen-space quad isn't discarded bc of depth test
+        // clear relevant buffers
+        WindowManager.clearColour(1.0f, 1.0f, 1.0f); // optional, to correctly see quad in wireframe mode
+        WindowManager.clearColourBuffer();
+
+        screenQuadRenderer.render();    // render screen quad
+        glEnable(GL_DEPTH_TEST);
+    }
+
+    private void renderDepthMap(ToDepthTextureRenderer toDepthTextureRenderer, DepthDebugScreenQuadRenderer depthGreyScreenQuadRenderer){
+
+        //--- render to depth map ---
+        toDepthTextureRenderer.render(scene);
+
+        // --- bind fbo to which to render ---
+        depthGreyScreenQuadRenderer.render();
+        glEnable(GL_DEPTH_TEST);
+    }
+
+    private void renderWithShadows(ToDepthTextureRenderer toDepthTextureRenderer, ToColourTextureRenderer toColourTextureRenderer, EntityPhongWShadowMapsRenderer entityRenderer, ScreenQuadRenderer screenQuadRenderer){
+        //--- render to depth map ---
+        toDepthTextureRenderer.render(scene);
+
+        // --- bind fbo to which to render ---
+        toColourTextureRenderer.bindFBOtoUse();
+        WindowManager.clearColourDepthBuffers();
+
+        // --- render commands ---
+
+        Matrix4f view = camera.calcLookAt(); // calc view matrix
+        Matrix4f projection = new Matrix4f(); // create projection matrix
+        projection.setPerspective((float) Math.toRadians(camera.getFOV()), (float) SCR_WIDTH / SCR_HEIGHT, 0.1f, 100.0f);
+
+        RenderContext.setContext(view, projection, camera.getCameraPos(), camera.getCameraFront());
+
+        entityRenderer.render(scene);
+
+        // bind default framebuffer & render quad
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glDisable(GL_DEPTH_TEST);       // so that screen-space quad isn't discarded bc of depth test
+        // clear relevant buffers
+        WindowManager.clearColour(1.0f, 1.0f, 1.0f); // optional, to correctly see quad in wireframe mode
+        WindowManager.clearColourBuffer();
+
+        screenQuadRenderer.render();    // render screen quad
+        glEnable(GL_DEPTH_TEST);
+    }
+
+    // --------------------------------------------------------------------------------------------------------------------------
 
     /**
      * Set the window callbacks.
@@ -335,7 +433,7 @@ class OpenGLApp {
     }
 
     /**
-     * Process keyboard input (press of key F) to toggle the flashlight todo
+     * Process keyboard input (press of key F) to toggle the flashlight todo -> change to save render to an img file
      * @return the new GLFW state of the F key
      */
     private int processFlashLightToggle(int currentFKeyState){
