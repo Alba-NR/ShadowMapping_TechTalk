@@ -170,7 +170,7 @@ class OpenGLApp {
         Entity floor = new DrawableEntity(null, floor_local_transform, new Vector3f(50), square);
 
         // DRAGON
-        Shape dragonShape = new ShapeFromOBJ("./resources/models/box.obj", new Material(), true); // red glass dragon
+        Shape dragonShape = new ShapeFromOBJ("./resources/models/dragon.obj", new Material(), true); // red glass dragon
 
         // calc local transform matrix for dragon
         Matrix4f dragon_local_transform = new Matrix4f();
@@ -209,11 +209,11 @@ class OpenGLApp {
         // --------- RENDER LOOP ---------
 
         //--- directional light's light space matrix, for shadow mapping ---
-        Matrix4f lightProjection = new Matrix4f().ortho(-10.0f, 10.0f, -10.0f, 10.0f, 1.0f, 7.5f);
+        Matrix4f lightProjection = new Matrix4f().ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.1f, 20f);
         Matrix4f lightView = new Matrix4f().lookAt(
-                new Vector3f(scene.getDirLight().getDirection()).mul(-1),
+                new Vector3f(scene.getDirLight().getDirection()).mul(-10),
                 new Vector3f(0),
-                new Vector3f(0.0f, 10.f, 0.0f)
+                new Vector3f(0.0f, 1.0f, 0.0f)
         );
 
         RenderContext.setDirLightViewMatrix(lightView);
@@ -317,7 +317,7 @@ class OpenGLApp {
         Matrix4f view = RenderContext.getDirLightViewMatrix();          // get view matrix
         Matrix4f projection = RenderContext.getDirLightProjMatrix();    // get proj matrix
 
-        RenderContext.setContext(view, projection, camera.getCameraPos(), camera.getCameraFront());
+        RenderContext.setContext(view, projection, new Vector3f(scene.getDirLight().getDirection()).mul(-1), scene.getDirLight().getDirection());
 
         entityRenderer.render(scene);
 
@@ -430,16 +430,6 @@ class OpenGLApp {
         if (WindowManager.getKeyState(GLFW_KEY_D) == GLFW_PRESS) camera.processKeyboardInput(CameraMovement.RIGHT, deltaTime);
         if (WindowManager.getKeyState(GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) camera.processKeyboardInput(CameraMovement.DOWNWARD, deltaTime);
         if (WindowManager.getKeyState(GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS) camera.processKeyboardInput(CameraMovement.UPWARD, deltaTime);
-    }
-
-    /**
-     * Process keyboard input (press of key F) to toggle the flashlight todo -> change to save render to an img file
-     * @return the new GLFW state of the F key
-     */
-    private int processFlashLightToggle(int currentFKeyState){
-        int newKeyState = WindowManager.getKeyState(GLFW_KEY_F);
-        //if (currentFKeyState == GLFW_PRESS && newKeyState == GLFW_RELEASE) ;
-        return  newKeyState;
     }
 
     /**
