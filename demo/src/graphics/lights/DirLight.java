@@ -33,6 +33,9 @@ public class DirLight implements LightSource{
     public Vector3f getColour() {
         return colour;
     }
+    public Vector3f getLightPosForSMRender(){
+        return new Vector3f(direction).mul(-5);
+    }
 
     public void setDirection(Vector3f direction) {
         this.direction = direction;

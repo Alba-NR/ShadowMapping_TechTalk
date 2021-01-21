@@ -49,20 +49,16 @@ in VS_OUT {
 
 out vec4 FragColor;
 
-#define MAX_POINT_LIGHTS 3
 uniform vec3 I_a;
-uniform PointLight pointLights[MAX_POINT_LIGHTS];
 uniform DirLight dirLight;
-uniform SpotLight spotLight;
 uniform Material material;
 uniform bool materialUsesTextures;
 uniform vec3 wc_cameraPos;
-uniform bool flashLightIsON;
+
 
 // function prototypes
 vec3 CalcDirLight(DirLight light, vec3 N, vec3 V, vec3 diffColour, vec3 specColour);
-vec3 CalcPointLight(PointLight light, vec3 N, vec3 V, vec3 diffColour, vec3 specColour);
-vec3 CalcSpotLight(SpotLight light, vec3 N, vec3 V, vec3 diffColour, vec3 specColour);
+vec3 toneMapAndDisplayEncode(vec3 linearRGB);
 
 void main()
 {
@@ -88,18 +84,21 @@ void main()
     // Directional lighting
     I_result = CalcDirLight(dirLight, N, V, diffComponent, specComponent);
 
-    // Point lights
-    for(int i = 0; i < MAX_POINT_LIGHTS; i++) I_result += CalcPointLight(pointLights[i], N, V, diffComponent, specComponent);
-
-    // Flashlight spotlight
-    if(flashLightIsON) I_result += CalcSpotLight(spotLight, N, V, diffComponent, specComponent);
-
     // ambient light
     I_result += I_a * diffColour * material.K_a;
 
-    FragColor = vec4(I_result, 1.0);
+    // perform basic tonemapping (adjust brightness) and display encoding (apply gamma correction)
+    FragColor = vec4(toneMapAndDisplayEncode(I_result), 1.0);
 }
 
+// performs tone mapping (-- here: brightness adjustment) and display encoding (-- here: gamma correction) combined
+vec3 toneMapAndDisplayEncode(vec3 linearRGB)
+{
+    float L_white = 0.7; // scene-referrered luminance of white (controls brightness of img)
+    float inverseGamma = 1.0/2.2;   // gamma value is 2.2
+
+    return pow(linearRGB / L_white, vec3(inverseGamma));
+}
 
 vec3 CalcDirLight(DirLight light, vec3 N, vec3 V, vec3 diffComponent, vec3 specComponent)
 {
@@ -112,48 +111,4 @@ vec3 CalcDirLight(DirLight light, vec3 N, vec3 V, vec3 diffComponent, vec3 specC
     vec3 I_specular = light.colour * specComponent * pow(max(dot(N, H), 0.0), material.shininess);
 
     return (I_diffuse + I_specular) * light.strength;
-}
-
-vec3 CalcPointLight(PointLight light, vec3 N, vec3 V, vec3 diffComponent, vec3 specComponent)
-{
-    //calc vectors
-    vec3 L = normalize(light.position - fs_in.wc_fragPos);
-    vec3 H = normalize(N + V);
-
-    // attenuation
-    float distance = length(light.position - fs_in.wc_fragPos);
-    float attenuation = light.strength / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
-
-    // diffuse & specular shading
-    vec3 I_diffuse = light.colour * diffComponent * max(dot(N, L), 0.0);
-    vec3 I_specular = light.colour * specComponent * pow(max(dot(N, H), 0.0), material.shininess);
-
-    I_diffuse *= attenuation;
-    I_specular *= attenuation;
-
-    return I_diffuse + I_specular;
-}
-
-vec3 CalcSpotLight(SpotLight light, vec3 N, vec3 V, vec3 diffComponent, vec3 specComponent)
-{
-    //calc vectors
-    vec3 L = normalize(light.position - fs_in.wc_fragPos);
-    vec3 H = normalize(N + V);
-
-    // attenuation
-    float distance = length(light.position - fs_in.wc_fragPos);
-    float attenuation =  light.strength / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
-
-    // angles for cutoff of spotlight
-    float theta = dot(L, normalize(-light.direction));
-    float I = clamp((theta - light.outerCutoffCosine) / (light.cutoffCosine - light.outerCutoffCosine), 0.0, 1.0); // clamp values to [0.0, 1.0] range
-
-    // diffuse & specular shading
-    vec3 I_diffuse = light.colour * diffComponent * max(dot(N, L), 0.0);
-    vec3 I_specular = light.colour * specComponent * pow(max(dot(N, H), 0.0), material.shininess);
-
-    I_diffuse *= attenuation * I;
-    I_specular *= attenuation * I;
-
-    return I_diffuse + I_specular;
 }

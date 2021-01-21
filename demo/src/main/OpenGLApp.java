@@ -82,13 +82,13 @@ class OpenGLApp {
      */
     private void setUpShaders() {
         // create (blinn-)phong shaders
-        Shader phong_vs = new Shader(GL_VERTEX_SHADER, "./resources/shaders/phong_shadowMaps_vs.glsl");
-        Shader phong_fs = new Shader(GL_FRAGMENT_SHADER, "./resources/shaders/blinnPhong_wShadowMaps_fs.glsl");
+        Shader phong_vs = new Shader(GL_VERTEX_SHADER, "./resources/shaders/phong_vs.glsl");
+        Shader phong_fs = new Shader(GL_FRAGMENT_SHADER, "./resources/shaders/blinnPhong_fs.glsl");
         phongShaderProgram = new ShaderProgram(phong_vs, phong_fs);
 
         // create (blinn-)phong shaders w/shadow mapping
-        Shader phongWS_vs = new Shader(GL_VERTEX_SHADER, "./resources/shaders/phong_vs.glsl");
-        Shader phongWS_fs = new Shader(GL_FRAGMENT_SHADER, "./resources/shaders/blinnPhong_fs.glsl");
+        Shader phongWS_vs = new Shader(GL_VERTEX_SHADER, "./resources/shaders/phong_shadowMaps_vs.glsl");
+        Shader phongWS_fs = new Shader(GL_FRAGMENT_SHADER, "./resources/shaders/blinnPhong_wShadowMaps_fs.glsl");
         phongWShadowsShaderProgram = new ShaderProgram(phongWS_vs, phongWS_fs);
 
         // create quad shaders
@@ -121,12 +121,17 @@ class OpenGLApp {
         // WOODEN CUBES
         List<Texture> woodenCube_texList = Arrays.asList(
                 new Texture("./resources/textures/container2.png", false, TextureType.DIFFUSE),
-                new Texture("./resources/textures/container2_specular.png", false, TextureType.SPECULAR),
-                new Texture("./resources/textures/container2_reflection2.png", false, TextureType.REFLECTION)
+                new Texture("./resources/textures/container2_specular.png", false, TextureType.SPECULAR)
         );
-        Material cubeMaterial = new Material(woodenCube_texList);
-        cubeMaterial.setK_spec(0.5f);
-        Shape cube = new Cube(cubeMaterial);
+        Material cubeMaterial1 = new Material(woodenCube_texList);
+        cubeMaterial1.setK_spec(0.5f);
+        Shape cube1 = new Cube(cubeMaterial1);
+
+        Material cubeMaterial2 = new Material(Arrays.asList(
+                new Texture("./resources/textures/circuitry-albedo.png", false, TextureType.DIFFUSE),
+                new Texture("./resources/textures/circuitry-metallic.png", false, TextureType.SPECULAR)
+        ));
+        Shape cube2 = new Cube(cubeMaterial2);
 
         // calc local transform matrix for cube 1
         Matrix4f cube1_local_transform = new Matrix4f();
@@ -134,7 +139,7 @@ class OpenGLApp {
                 .rotate((float) Math.toRadians(45), 0.0f, 1.0f, 0.0f);
 
         // create 1st cube entity
-        Entity cube1_entity = new DrawableEntity(null, cube1_local_transform, new Vector3f(2.0f), cube);
+        Entity cube1_entity = new DrawableEntity(null, cube1_local_transform, new Vector3f(2.0f), cube1);
 
         // calc local transform for 2nd cube entity
         Matrix4f cube2_local_transform = new Matrix4f();
@@ -142,7 +147,7 @@ class OpenGLApp {
                 .rotate((float) Math.toRadians(30), 0.0f, 1.0f, 0.0f);
 
         // create 2nd cube entity, child of 1st cube entity
-        Entity cube2_entity = new DrawableEntity(cube1_entity, cube2_local_transform, new Vector3f(0.5f), cube);
+        Entity cube2_entity = new DrawableEntity(cube1_entity, cube2_local_transform, new Vector3f(0.5f), cube1);
         cube1_entity.addChild(cube2_entity);
 
         // calc local transform for 3rd cube entity
@@ -151,15 +156,14 @@ class OpenGLApp {
                 .rotate((float) Math.toRadians(60), 0.0f, 1.0f, 0.0f);
 
         // create 3rd cube entity, child of 1st cube entity
-        Entity cube3_entity = new DrawableEntity(cube1_entity, cube3_local_transform, new Vector3f(0.6f), cube);
+        Entity cube3_entity = new DrawableEntity(cube1_entity, cube3_local_transform, new Vector3f(0.6f), cube2);
         cube1_entity.addChild(cube3_entity);
 
         // FLOOR PLANE
-        //Shape square = new Square(new ReflectiveMaterial(0.2f, 0.8f, 0.01f, 4f, new Vector3f(51/255f, 56/255f, 62/255f), new Vector3f(1f)));
-        Texture woodenFloorTex = new Texture("./resources/textures/floor.png", true, TextureType.DIFFUSE);
-        Shape square = new Square(
-                new Material(Arrays.asList(woodenFloorTex))
-        );
+        Material floorMaterial = new Material();
+        floorMaterial.setK_spec(0);
+        floorMaterial.setDiffColour(new Vector3f(30/255f, 5/255f, 5/255f));
+        Shape square = new Square(floorMaterial);
 
         // calc local transform matrix for square
         Matrix4f floor_local_transform = new Matrix4f();
@@ -167,10 +171,12 @@ class OpenGLApp {
                 .rotate((float) Math.toRadians(90), 1.0f, 0.0f, 0.0f);
 
         // create floor entity
-        Entity floor = new DrawableEntity(null, floor_local_transform, new Vector3f(50), square);
+        Entity floor = new DrawableEntity(null, floor_local_transform, new Vector3f(25), square);
 
         // DRAGON
-        Shape dragonShape = new ShapeFromOBJ("./resources/models/dragon.obj", new Material(), true); // red glass dragon
+        Shape dragonShape = new ShapeFromOBJ("./resources/models/dragon.obj",
+                new Material(new Vector3f(255/255f, 30/255f, 30/255f), new Vector3f(212/255f, 175/255f, 55/255f)),
+                true); // red glass dragon
 
         // calc local transform matrix for dragon
         Matrix4f dragon_local_transform = new Matrix4f();
@@ -209,9 +215,9 @@ class OpenGLApp {
         // --------- RENDER LOOP ---------
 
         //--- directional light's light space matrix, for shadow mapping ---
-        Matrix4f lightProjection = new Matrix4f().ortho(-10.0f, 10.0f, -10.0f, 10.0f, 0.1f, 20f);
+        Matrix4f lightProjection = new Matrix4f().ortho(-10.0f, 10.0f, -10.0f, 10.0f, 1.0f, 20f);
         Matrix4f lightView = new Matrix4f().lookAt(
-                new Vector3f(scene.getDirLight().getDirection()).mul(-10),
+                scene.getDirLight().getLightPosForSMRender(),
                 new Vector3f(0),
                 new Vector3f(0.0f, 1.0f, 0.0f)
         );
@@ -317,7 +323,7 @@ class OpenGLApp {
         Matrix4f view = RenderContext.getDirLightViewMatrix();          // get view matrix
         Matrix4f projection = RenderContext.getDirLightProjMatrix();    // get proj matrix
 
-        RenderContext.setContext(view, projection, new Vector3f(scene.getDirLight().getDirection()).mul(-1), scene.getDirLight().getDirection());
+        RenderContext.setContext(view, projection, scene.getDirLight().getLightPosForSMRender(), scene.getDirLight().getDirection());
 
         entityRenderer.render(scene);
 
