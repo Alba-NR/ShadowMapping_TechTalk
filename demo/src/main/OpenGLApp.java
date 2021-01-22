@@ -409,19 +409,23 @@ class OpenGLApp {
         });
 
         // mouse-related callbacks
-        glfwSetInputMode(win, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // use mouse
+        //glfwSetInputMode(win, GLFW_CURSOR, GLFW_CURSOR_DISABLED); // disable cursor
         glfwSetCursorPosCallback(win, (long window, double xpos, double ypos) -> {
             if (firstMouse) {
                 lastX = xpos;
                 lastY = ypos;
                 firstMouse = false;
             }
-            double xoffset = (xpos - lastX);
-            double yoffset = (lastY - ypos); // reversed since y-coord range from bottom to top
+
+            boolean dragging = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
+            if (dragging) {
+                double xoffset = (xpos - lastX);
+                double yoffset = (lastY - ypos); // reversed since y-coord range from bottom to top
+                camera.processMouseMovement(xoffset, yoffset, true);
+            }
+
             lastX = xpos;
             lastY = ypos;
-
-            camera.processMouseMovement(xoffset, yoffset, true);
         });
         glfwSetScrollCallback(win, (long window, double xoffset, double yoffset) -> { // 'zoom' illusion when scroll w/mouse
             camera.processMouseScroll(yoffset);
