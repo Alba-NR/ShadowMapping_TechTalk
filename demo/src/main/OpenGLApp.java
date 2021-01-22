@@ -405,7 +405,7 @@ class OpenGLApp {
             }
             // take 'screenshot' when press F
             if (key == GLFW_KEY_F && action == GLFW_RELEASE)
-                ScreenshotMaker.takeScreenshot(); // TODO
+                ScreenshotMaker.takeScreenshot();
         });
 
         // mouse-related callbacks

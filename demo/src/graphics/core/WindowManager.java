@@ -1,6 +1,7 @@
 package graphics.core;
 
 import org.joml.Vector3f;
+import org.lwjgl.glfw.GLFWVidMode;
 
 import static org.lwjgl.glfw.Callbacks.glfwFreeCallbacks;
 import static org.lwjgl.glfw.GLFW.*;
@@ -33,7 +34,7 @@ public class WindowManager {
         glfwWindowHint(GLFW_SAMPLES, 4); // multi-sample buffer for MSAA
 
         // --- GLFW window creation ---
-        window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "OpenGL_Java", NULL, NULL);
+        window = glfwCreateWindow(SCR_WIDTH, SCR_HEIGHT, "Shadow Mapping Demo", NULL, NULL);
         if(window == NULL){
             glfwTerminate();
             throw new RuntimeException("Failed to create the GLFW window");
@@ -43,10 +44,9 @@ public class WindowManager {
         createCapabilities();  // necessary here
         glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);   // set OpenGL window/viewport (OpenGL will render in this viewport)
 
-        // when working w/my 2nd monitor todo
-        //GLFWVidMode vid = glfwGetVideoMode(glfwGetPrimaryMonitor());
-        //glfwSetWindowPos(window, (vid.width()+SCR_WIDTH/2), (vid.height()-(int)(SCR_HEIGHT*1.5)));
-
+        // position at centre of screen
+        GLFWVidMode mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+        glfwSetWindowPos(window, (mode.width() - SCR_WIDTH) / 2, (mode.height() - SCR_HEIGHT) / 2);
     }
 
     /**
