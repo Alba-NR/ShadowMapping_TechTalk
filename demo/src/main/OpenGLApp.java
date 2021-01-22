@@ -3,6 +3,7 @@ package main;
 import graphics.camera.Camera;
 import graphics.camera.CameraMovement;
 import graphics.core.WindowManager;
+import graphics.core.io.ScreenshotMaker;
 import graphics.lights.DirLight;
 import graphics.materials.Material;
 import graphics.renderEngine.*;
@@ -246,7 +247,6 @@ class OpenGLApp {
         float deltaTime;	        // Time between current frame and last frame
         float lastFrameT = 0.0f;    // Time of last frame
 
-        int currentKeyFState = WindowManager.getKeyState(GLFW_KEY_F); // get current state of F key (for flashlight)
 
         // --- repeat while GLFW isn't instructed to close ---
         while(!WindowManager.windowShouldClose()){
@@ -403,6 +403,9 @@ class OpenGLApp {
             for(int i = 1; i <= RenderOptionsManager.getNumOfOptions(); i++){
                 if (key == GLFW_KEY_0 + i) RenderContext.setRenderOption(RenderOptionsManager.getEffectByIntID(i));
             }
+            // take 'screenshot' when press F
+            if (key == GLFW_KEY_F && action == GLFW_RELEASE)
+                ScreenshotMaker.takeScreenshot(); // TODO
         });
 
         // mouse-related callbacks
