@@ -115,7 +115,7 @@ class OpenGLApp {
         // --- SET UP LIGHTS ---
 
         // directional light
-        DirLight dirLight = new DirLight(new Vector3f(1.0f, 1.0f, 1.0f), 2.0f, new Vector3f(-0.2f, -1.0f, -0.3f));
+        DirLight dirLight = new DirLight(new Vector3f(1.0f, 1.0f, 1.0f), 2.0f, new Vector3f(0.4f, -1.0f, 0.4f));
         Vector3f ambientIntensity = new Vector3f(0.7f,0.7f,1.0f);
 
         // --- SET UP ENTITIES ---
@@ -136,7 +136,7 @@ class OpenGLApp {
 
         // calc local transform matrix for cube 1
         Matrix4f cube1_local_transform = new Matrix4f();
-        cube1_local_transform.translate(-2.0f, 0.0f, -2.0f)
+        cube1_local_transform.translate(-2.0f, 0.0f, -1.0f)
                 .rotate((float) Math.toRadians(45), 0.0f, 1.0f, 0.0f);
 
         // create 1st cube entity
@@ -189,7 +189,7 @@ class OpenGLApp {
 
 
         // --- COMPONENTS LIST: add entities to components list
-        List<Entity> components = new ArrayList<>(Arrays.asList(cube1_entity, dragon, floor));
+        List<Entity> components = new ArrayList<>(Arrays.asList(cube3_entity, floor)); //cube1_entity, dragon, floor));
 
 
         // --- CREATE SCENE ---
