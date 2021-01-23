@@ -216,7 +216,7 @@ class OpenGLApp {
         // --------- RENDER LOOP ---------
 
         //--- directional light's light space matrix, for shadow mapping ---
-        Matrix4f lightProjection = new Matrix4f().ortho(-10.0f, 10.0f, -10.0f, 10.0f, 1.0f, 20f);
+        Matrix4f lightProjection = new Matrix4f().ortho(-5.0f, 5.0f, -5.0f, 5.0f, 1.0f, 20f);
         Matrix4f lightView = new Matrix4f().lookAt(
                 scene.getDirLight().getLightPosForSMRender(),
                 new Vector3f(0),
