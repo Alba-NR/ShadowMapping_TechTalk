@@ -189,7 +189,7 @@ class OpenGLApp {
 
 
         // --- COMPONENTS LIST: add entities to components list
-        List<Entity> components = new ArrayList<>(Arrays.asList(cube3_entity, floor)); //cube1_entity, dragon, floor));
+        List<Entity> components = new ArrayList<>(Arrays.asList(cube1_entity, dragon, floor)); //cube3_entity, floor));
 
 
         // --- CREATE SCENE ---

@@ -123,14 +123,14 @@ float CalcShadow(DirLight light, vec3 N, vec4 fragPosLightSpace)
         */
         // impl PCF (percentage-closer filtering) to produce softer shadows
         float currentDepth = projCoords.z;  // get depth of current frag
-        float bias = max(0.001 * (1.0 - dot(N, L)), 0.0015);  // calc bias (to avoid 'shadow acne' // moiré pattern aliasing)
+        //float bias = max(0.001 * (1.0 - dot(N, L)), 0.0015);  // calc bias (to avoid 'shadow acne' // moiré pattern aliasing)
 
         vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
 
         for(int x = -1; x <= 1; ++x){
             for(int y = -1; y <= 1; ++y){
                 float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r;
-                shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
+                shadow += currentDepth > pcfDepth ? 1.0 : 0.0;//shadow += currentDepth - bias > pcfDepth ? 1.0 : 0.0;
             }
         }
         shadow /= 9.0;
