@@ -8,3 +8,4 @@
 *.ipr
 .idea/
 out/
+src/META-INF/
